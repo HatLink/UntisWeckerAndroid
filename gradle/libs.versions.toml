@@ -9,6 +9,9 @@ activityCompose = "1.8.0"
 kotlin = "2.2.10"
 composeBom = "2025.12.00"
 kotlinx-serialization = "1.6.2"
+kotlinx-coroutines = "1.7.3"
+camera = "1.4.1"
+mlkit-barcode = "17.3.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -31,9 +34,16 @@ ktor-client-core = { group = "io.ktor", name = "ktor-client-core", version = "2.
 ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version = "2.3.7" }
 ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation", version = "2.3.7" }
 ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version = "2.3.7" }
+ktor-client-logging = { group = "io.ktor", name = "ktor-client-logging", version = "2.3.7" }
+androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "camera" }
+androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camera" }
+androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camera" }
+androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camera" }
+mlkit-barcode-scanning = { group = "com.google.mlkit", name = "barcode-scanning", version.ref = "mlkit-barcode" }
+kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
+androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-

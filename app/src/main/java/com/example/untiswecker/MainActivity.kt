@@ -32,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -48,17 +49,38 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             UntisWeckerTheme {
-                UntisWeckerApp()
+                val context = LocalContext.current
+                val sessionManager = remember { SessionManager(context) }
+                var isLoggedIn by remember { mutableStateOf(sessionManager.isLoggedIn()) }
+
+                if (isLoggedIn) {
+                    UntisWeckerApp(onLogout = {
+                        sessionManager.logout()
+                        isLoggedIn = false
+                    })
+                } else {
+                    LoginScreen(onLoginSuccess = { server, school, user, pass ->
+                        sessionManager.saveSession(server, school, user, pass)
+                        isLoggedIn = true
+                    })
+                }
             }
         }
     }
 }
 
-@PreviewScreenSizes
 @Composable
-fun UntisWeckerApp() {
+fun UntisWeckerApp(onLogout: () -> Unit) {
     val context = LocalContext.current
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
+    var hasCameraPermission by rememberSaveable {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
     var hasNotificationPermission by rememberSaveable {
         mutableStateOf(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -72,16 +94,26 @@ fun UntisWeckerApp() {
         )
     }
 
-    val permissionLauncher = rememberLauncherForActivityResult(
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { isGranted ->
             hasNotificationPermission = isGranted
         }
     )
 
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            hasCameraPermission = isGranted
+        }
+    )
+
     LaunchedEffect(Unit) {
         if (!hasNotificationPermission && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        if (!hasCameraPermission) {
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
 
@@ -118,6 +150,10 @@ fun UntisWeckerApp() {
                     }
                 }) {
                     Text("Test Alarm (5s)")
+                }
+                Spacer(modifier = Modifier.height(32.dp))
+                Button(onClick = onLogout) {
+                    Text("Logout")
                 }
             }
         }
