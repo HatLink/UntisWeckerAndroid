@@ -40,9 +40,10 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
+import com.example.untiswecker.TimetableUpdateWorker
 
 @Composable
-fun LoginScreen(onLoginSuccess: (String, String, String, String) -> Unit) {
+fun LoginScreen(onLoginSuccess: (String, String, String, String, Int?, Int?) -> Unit) {
     var server by remember { mutableStateOf("tipo.webuntis.com") }
     var school by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
@@ -203,8 +204,14 @@ if (isScanning) return
                         val client = UntisClient(server, school)
                         val response = client.authenticate(username, password)
                         isLoading = false
-                        if (response.result != null) {
-                            onLoginSuccess(server, school, username, password)
+                        if (response.result != null || (response.error == null && response.jsonrpc == "2.0")) {
+                            val result = response.result
+                            val pId = result?.extractPersonId()
+                            val pType = result?.extractPersonType() ?: 5
+                            
+                            Log.d("LoginScreen", "Login successful. Extracted personId=$pId, personType=$pType")
+                            onLoginSuccess(server, school, username, password, pId, pType)
+                            TimetableUpdateWorker.schedule(context)
                         } else {
                             errorMessage = response.error?.message ?: "Login failed"
                         }

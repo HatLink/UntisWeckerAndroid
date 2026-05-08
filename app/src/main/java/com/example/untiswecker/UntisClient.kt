@@ -117,15 +117,17 @@ class UntisClient(private val server: String, private val school: String) {
             
             val body = response.body<UntisResponse<LoginResult>>()
             // Some versions of the API return the data in a way that needs sessionId injection if it was only in cookies
-            if (body.result != null && body.result.sessionId == null) {
-                body.copy(result = body.result.copy(sessionId = sessionId))
-            } else if (body.result == null && body.error == null && sessionId != null) {
+            if (body.result != null) {
+                if (body.result.sessionId == null) {
+                    return body.copy(result = body.result.copy(sessionId = sessionId))
+                }
+                return body
+            } else if (body.error == null && sessionId != null) {
                 // If it succeeded but returned an empty result (unexpected but possible), 
                 // return a dummy result with the sessionId
-                UntisResponse(result = LoginResult(sessionId = sessionId))
-            } else {
-                body
+                return UntisResponse(result = LoginResult(sessionId = sessionId))
             }
+            return body
         } catch (e: Exception) {
             Log.e("UntisClient", "getUserData2017 failed", e)
             null
@@ -136,10 +138,13 @@ class UntisClient(private val server: String, private val school: String) {
         val request = UntisRequest(
             id = "1",
             method = "authenticate",
-            params = LoginParams(user = user, password = pass, client = "Untis Mobile")
+            params = listOf(
+                LoginParams(user = user, password = pass, client = "Untis Mobile")
+            )
         )
         return try {
-            val response = client.post(url) {
+            val authUrl = "https://$server/WebUntis/jsonrpc.do?m=authenticate&school=$school"
+            val response = client.post(authUrl) {
                 contentType(ContentType.Application.Json)
                 setBody(request)
             }
@@ -179,17 +184,26 @@ class UntisClient(private val server: String, private val school: String) {
         startDate: Int,
         endDate: Int
     ): UntisResponse<List<TimetableEntry>>? {
+        Log.d("UntisClient", "Requesting timetable for personId=$personId, personType=$personType from $startDate to $endDate")
+
         val request = UntisRequest(
             id = "2",
             method = "getTimetable",
-            params = TimetableParams(personId, personType, startDate, endDate)
+            params = TimetableParams(
+                id = personId,
+                type = personType,
+                startDate = startDate,
+                endDate = endDate
+            )
         )
         return try {
-            client.post(url) {
+            val response = client.post("https://$server/WebUntis/jsonrpc.do?m=getTimetable&school=$school") {
                 contentType(ContentType.Application.Json)
                 header("Cookie", "JSESSIONID=$sessionId")
                 setBody(request)
-            }.body()
+            }
+            Log.d("UntisClient", "getTimetable raw response: ${response.status}")
+            response.body()
         } catch (e: Exception) {
             Log.e("UntisClient", "getTimetable failed", e)
             null

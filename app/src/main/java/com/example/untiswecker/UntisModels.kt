@@ -36,16 +36,36 @@ data class UntisError(
 data class LoginResult(
     val sessionId: String? = null,
     val jwt: String? = null,
-    val personType: Int? = null,
+    val personType: JsonElement? = null,
     val personId: Int? = null,
+    val userId: Int? = null,
     val klasseId: Int? = null,
-    val userConfig: UserConfig? = null
-)
+    val userConfig: UserConfig? = null,
+    val userData: UserData? = null
+) {
+    fun extractPersonId(): Int? = personId ?: userConfig?.personId ?: userData?.elemId
+
+    fun extractPersonType(): Int? {
+        val typeJson = personType ?: userConfig?.personType ?: userData?.elemType
+        val typeStr = typeJson?.toString()?.trim('"') ?: return null
+        return when {
+            typeStr.contains("STUDENT", ignoreCase = true) -> 5
+            typeStr.contains("TEACHER", ignoreCase = true) -> 2
+            else -> typeStr.toIntOrNull()
+        }
+    }
+}
 
 @Serializable
 data class UserConfig(
     val personId: Int? = null,
-    val personType: Int? = null
+    val personType: JsonElement? = null
+)
+
+@Serializable
+data class UserData(
+    val elemId: Int? = null,
+    val elemType: JsonElement? = null
 )
 
 @Serializable
@@ -80,14 +100,18 @@ data class TimetableEntry(
     val ro: List<Entity>? = null,
     val activityType: String? = null,
     val code: String? = null,
-    val lstext: String? = null
+    val lstext: String? = null,
+    val substText: String? = null,
+    val info: String? = null
 )
 
 @Serializable
 data class Entity(
-    val id: Long,
+    val id: Long? = null,
     val name: String? = null,
-    val longname: String? = null
+    val longName: String? = null,
+    val longname: String? = null,
+    val orgid: Long? = null
 )
 
 @Serializable
