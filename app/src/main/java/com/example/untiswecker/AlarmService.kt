@@ -68,7 +68,7 @@ class AlarmService : Service() {
         }
 
         val notification = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.mipmap.ic_launcher_foreground)
             .setContentTitle("Untis Alarm")
             .setContentText(contentText)
             .setPriority(NotificationCompat.PRIORITY_MAX)
