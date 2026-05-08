@@ -111,8 +111,27 @@ data class Entity(
     val name: String? = null,
     val longName: String? = null,
     val longname: String? = null,
+    val foreName: String? = null,
+    val forename: String? = null,
+    val backColor: String? = null,
+    val foreColor: String? = null,
     val orgid: Long? = null
-)
+) {
+    fun getDisplayName(): String? {
+        return (longname ?: longName)?.takeIf { it.isNotEmpty() }
+            ?: name?.takeIf { it.isNotEmpty() }
+    }
+
+    fun getFullTeacherName(): String? {
+        val first = (forename ?: foreName)?.takeIf { it.isNotEmpty() }
+        val last = (longname ?: longName ?: name)?.takeIf { it.isNotEmpty() }
+        return when {
+            first != null && last != null -> "$first $last"
+            last != null -> last
+            else -> first
+        }
+    }
+}
 
 @Serializable
 data class MobileAuthRequest(

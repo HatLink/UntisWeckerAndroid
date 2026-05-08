@@ -188,6 +188,12 @@ fun UntisWeckerApp(onLogout: () -> Unit) {
                         personId, personType
                     )
                 }
+
+                // Fetch master data for hydration
+                val subjectsMap = client.getSubjects()?.result?.filter { it.id != null }?.associateBy { it.id!! } ?: emptyMap()
+                val teachersMap = client.getTeachers()?.result?.filter { it.id != null }?.associateBy { it.id!! } ?: emptyMap()
+                val klassenMap = client.getKlassen()?.result?.filter { it.id != null }?.associateBy { it.id!! } ?: emptyMap()
+                val roomsMap = client.getRooms()?.result?.filter { it.id != null }?.associateBy { it.id!! } ?: emptyMap()
                 
                 val today = LocalDate.now()
                 val todayInt = today.year * 10000 + today.monthValue * 100 + today.dayOfMonth
@@ -205,7 +211,15 @@ fun UntisWeckerApp(onLogout: () -> Unit) {
                 Log.d("UntisWecker", "Timetable response: ${response?.result?.size ?: 0} entries")
 
                 if (response?.result != null) {
-                    timetable = response.result
+                    // Hydrate timetable entries with master data names
+                    timetable = response.result.map { entry ->
+                        entry.copy(
+                            su = entry.su?.map { s -> subjectsMap[s.id] ?: s },
+                            te = entry.te?.map { t -> teachersMap[t.id] ?: t },
+                            kl = entry.kl?.map { k -> klassenMap[k.id] ?: k },
+                            ro = entry.ro?.map { r -> roomsMap[r.id] ?: r }
+                        )
+                    }
                     scheduler.scheduleNextAlarm(timetable)
                     TimetableUpdateWorker.schedule(context)
                 } else if (response?.error != null) {
@@ -524,7 +538,7 @@ fun LessonItem(lesson: TimetableEntry) {
             
             Column(modifier = Modifier.weight(1f)) {
                 val su = lesson.su?.firstOrNull()
-                val subject = su?.longname ?: su?.longName ?: su?.name ?: lesson.lstext ?: 
+                val subject = su?.getDisplayName() ?: lesson.lstext ?: 
                              (if (su != null) "Subject ID: ${su.id}" else null) ?: "Unknown"
                 
                 Text(
@@ -535,12 +549,8 @@ fun LessonItem(lesson: TimetableEntry) {
                     color = if (isCancelled) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
                 )
                 
-                val teacher = lesson.te?.firstOrNull()?.let { 
-                    it.longname ?: it.longName ?: it.name ?: (if (it.id != null) "Teacher ${it.id}" else null) 
-                } ?: ""
-                val klass = lesson.kl?.firstOrNull()?.let { 
-                    it.name ?: (if (it.id != null) "Class ${it.id}" else null) 
-                } ?: ""
+                val teacher = lesson.te?.firstOrNull()?.getFullTeacherName() ?: ""
+                val klass = lesson.kl?.firstOrNull()?.getDisplayName() ?: ""
                 
                 if (teacher.isNotEmpty() || klass.isNotEmpty()) {
                     Text(
@@ -561,9 +571,7 @@ fun LessonItem(lesson: TimetableEntry) {
             }
 
             Column(horizontalAlignment = Alignment.End) {
-                val room = lesson.ro?.firstOrNull()?.let { 
-                    it.name ?: (if (it.id != null) "Room ${it.id}" else null) 
-                } ?: ""
+                val room = lesson.ro?.firstOrNull()?.getDisplayName() ?: ""
                 Text(
                     text = room,
                     style = MaterialTheme.typography.labelLarge,

@@ -178,6 +178,30 @@ class UntisClient(private val server: String, private val school: String) {
         }
     }
 
+    suspend fun getSubjects(): UntisResponse<List<Entity>>? = requestSimple("getSubjects")
+    suspend fun getTeachers(): UntisResponse<List<Entity>>? = requestSimple("getTeachers")
+    suspend fun getKlassen(): UntisResponse<List<Entity>>? = requestSimple("getKlassen")
+    suspend fun getRooms(): UntisResponse<List<Entity>>? = requestSimple("getRooms")
+
+    private suspend inline fun <reified T> requestSimple(method: String): UntisResponse<T>? {
+        val request = UntisRequest(
+            id = "3",
+            method = method,
+            params = emptyMap<String, String>()
+        )
+        return try {
+            val response = client.post("https://$server/WebUntis/jsonrpc.do?m=$method&school=$school") {
+                contentType(ContentType.Application.Json)
+                header("Cookie", "JSESSIONID=$sessionId")
+                setBody(request)
+            }
+            response.body()
+        } catch (e: Exception) {
+            Log.e("UntisClient", "$method failed", e)
+            null
+        }
+    }
+
     suspend fun getTimetable(
         personId: Int,
         personType: Int,

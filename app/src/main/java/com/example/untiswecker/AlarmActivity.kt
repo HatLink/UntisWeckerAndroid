@@ -130,8 +130,23 @@ class AlarmActivity : ComponentActivity() {
                     todayInt,
                     nextWeekInt
                 )
-                response?.result?.let {
-                    scheduler.scheduleNextAlarm(it)
+                if (response?.result != null) {
+                    // Fetch master data for hydration
+                    val subjectsMap = client.getSubjects()?.result?.filter { it.id != null }?.associateBy { it.id!! } ?: emptyMap()
+                    val teachersMap = client.getTeachers()?.result?.filter { it.id != null }?.associateBy { it.id!! } ?: emptyMap()
+                    val klassenMap = client.getKlassen()?.result?.filter { it.id != null }?.associateBy { it.id!! } ?: emptyMap()
+                    val roomsMap = client.getRooms()?.result?.filter { it.id != null }?.associateBy { it.id!! } ?: emptyMap()
+
+                    val hydratedTimetable = response.result.map { entry ->
+                        entry.copy(
+                            su = entry.su?.map { s -> subjectsMap[s.id] ?: s },
+                            te = entry.te?.map { t -> teachersMap[t.id] ?: t },
+                            kl = entry.kl?.map { k -> klassenMap[k.id] ?: k },
+                            ro = entry.ro?.map { r -> roomsMap[r.id] ?: r }
+                        )
+                    }
+
+                    scheduler.scheduleNextAlarm(hydratedTimetable)
                 }
             }
         }
