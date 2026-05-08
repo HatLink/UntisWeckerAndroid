@@ -72,6 +72,7 @@ class AlarmActivity : ComponentActivity() {
 
                         if (lesson != null) {
                             val subject = lesson.su?.firstOrNull()?.getDisplayName() ?: lesson.lstext ?: "School"
+                            val teacher = lesson.te?.firstOrNull()?.getFullTeacherName() ?: ""
                             val room = lesson.ro?.firstOrNull()?.getDisplayName(preferLong = false) ?: ""
                             val time = formatUntisTime(lesson.startTime)
                             
@@ -80,6 +81,12 @@ class AlarmActivity : ComponentActivity() {
                                 text = subject,
                                 style = MaterialTheme.typography.titleLarge
                             )
+                            if (teacher.isNotEmpty()) {
+                                Text(
+                                    text = teacher,
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                            }
                             if (room.isNotEmpty()) {
                                 Text(
                                     text = "Room: $room",
@@ -173,10 +180,11 @@ class AlarmActivity : ComponentActivity() {
                 )
                 if (response?.result != null) {
                     // Fetch master data for hydration
-                    val subjectsMap = client.getSubjects()?.result?.filter { it.id != null }?.associateBy { it.id!! } ?: emptyMap()
-                    val teachersMap = client.getTeachers()?.result?.filter { it.id != null }?.associateBy { it.id!! } ?: emptyMap()
-                    val klassenMap = client.getKlassen()?.result?.filter { it.id != null }?.associateBy { it.id!! } ?: emptyMap()
-                    val roomsMap = client.getRooms()?.result?.filter { it.id != null }?.associateBy { it.id!! } ?: emptyMap()
+                    val masterData = authResponse.result?.masterData
+                    val subjectsMap = (masterData?.subjects ?: client.getSubjects()?.result)?.filter { it.id != null }?.associateBy { it.id!! } ?: emptyMap()
+                    val teachersMap = (masterData?.teachers ?: client.getTeachers()?.result)?.filter { it.id != null }?.associateBy { it.id!! } ?: emptyMap()
+                    val klassenMap = (masterData?.klassen ?: client.getKlassen()?.result)?.filter { it.id != null }?.associateBy { it.id!! } ?: emptyMap()
+                    val roomsMap = (masterData?.rooms ?: client.getRooms()?.result)?.filter { it.id != null }?.associateBy { it.id!! } ?: emptyMap()
 
                     val hydratedTimetable = response.result.map { entry ->
                         entry.copy(

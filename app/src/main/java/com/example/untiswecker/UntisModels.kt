@@ -41,7 +41,8 @@ data class LoginResult(
     val userId: Int? = null,
     val klasseId: Int? = null,
     val userConfig: UserConfig? = null,
-    val userData: UserData? = null
+    val userData: UserData? = null,
+    val masterData: MasterData? = null
 ) {
     fun extractPersonId(): Int? = personId ?: userConfig?.personId ?: userData?.elemId
 
@@ -55,6 +56,14 @@ data class LoginResult(
         }
     }
 }
+
+@Serializable
+data class MasterData(
+    val teachers: List<Entity>? = null,
+    val subjects: List<Entity>? = null,
+    val rooms: List<Entity>? = null,
+    val klassen: List<Entity>? = null
+)
 
 @Serializable
 data class UserConfig(
@@ -111,25 +120,38 @@ data class Entity(
     val name: String? = null,
     val longName: String? = null,
     val longname: String? = null,
+    val lastName: String? = null,
     val foreName: String? = null,
     val forename: String? = null,
+    val firstName: String? = null,
+    val title: String? = null,
+    val dname: String? = null,
+    val fullName: String? = null,
     val backColor: String? = null,
     val foreColor: String? = null,
     val orgid: Long? = null
 ) {
     fun getDisplayName(preferLong: Boolean = true): String? {
         val short = name?.takeIf { it.isNotEmpty() }
-        val long = (longname ?: longName)?.takeIf { it.isNotEmpty() }
+        val long = (longname ?: longName ?: lastName ?: dname ?: fullName)?.takeIf { it.isNotEmpty() }
         return if (preferLong) (long ?: short) else (short ?: long)
     }
 
     fun getFullTeacherName(): String? {
-        val first = (forename ?: foreName)?.takeIf { it.isNotEmpty() }
-        val last = (longname ?: longName ?: name)?.takeIf { it.isNotEmpty() }
+        val t = title?.takeIf { it.isNotEmpty() }
+        val last = (lastName ?: longname ?: longName)?.takeIf { it.isNotEmpty() }
+        val first = (firstName ?: forename ?: foreName)?.takeIf { it.isNotEmpty() }
+        val dn = dname?.takeIf { it.isNotEmpty() }
+        val fn = fullName?.takeIf { it.isNotEmpty() }
+
         return when {
+            t != null && last != null -> "$t $last"
+            dn != null -> dn
+            fn != null -> fn
             first != null && last != null -> "$first $last"
             last != null -> last
-            else -> first
+            first != null -> first
+            else -> name
         }
     }
 }

@@ -36,10 +36,11 @@ class TimetableUpdateWorker(context: Context, workerParams: WorkerParameters) : 
             
             if (response?.result != null) {
                 // Fetch master data for hydration
-                val subjectsMap = client.getSubjects()?.result?.filter { it.id != null }?.associateBy { it.id!! } ?: emptyMap()
-                val teachersMap = client.getTeachers()?.result?.filter { it.id != null }?.associateBy { it.id!! } ?: emptyMap()
-                val klassenMap = client.getKlassen()?.result?.filter { it.id != null }?.associateBy { it.id!! } ?: emptyMap()
-                val roomsMap = client.getRooms()?.result?.filter { it.id != null }?.associateBy { it.id!! } ?: emptyMap()
+                val masterData = result.masterData
+                val subjectsMap = (masterData?.subjects ?: client.getSubjects()?.result)?.filter { it.id != null }?.associateBy { it.id!! } ?: emptyMap()
+                val teachersMap = (masterData?.teachers ?: client.getTeachers()?.result)?.filter { it.id != null }?.associateBy { it.id!! } ?: emptyMap()
+                val klassenMap = (masterData?.klassen ?: client.getKlassen()?.result)?.filter { it.id != null }?.associateBy { it.id!! } ?: emptyMap()
+                val roomsMap = (masterData?.rooms ?: client.getRooms()?.result)?.filter { it.id != null }?.associateBy { it.id!! } ?: emptyMap()
 
                 val hydratedTimetable = response.result.map { entry ->
                     entry.copy(
