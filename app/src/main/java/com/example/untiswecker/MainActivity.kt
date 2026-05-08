@@ -195,6 +195,8 @@ fun UntisWeckerApp(onLogout: () -> Unit) {
                 val klassenMap = client.getKlassen()?.result?.filter { it.id != null }?.associateBy { it.id!! } ?: emptyMap()
                 val roomsMap = client.getRooms()?.result?.filter { it.id != null }?.associateBy { it.id!! } ?: emptyMap()
                 
+                Log.d("UntisWecker", "Hydration maps: su=${subjectsMap.size}, te=${teachersMap.size}, kl=${klassenMap.size}, ro=${roomsMap.size}")
+                
                 val today = LocalDate.now()
                 val todayInt = today.year * 10000 + today.monthValue * 100 + today.dayOfMonth
                 val endDate = today.plusDays(7)
@@ -550,7 +552,7 @@ fun LessonItem(lesson: TimetableEntry) {
                 )
                 
                 val teacher = lesson.te?.firstOrNull()?.getFullTeacherName() ?: ""
-                val klass = lesson.kl?.firstOrNull()?.getDisplayName() ?: ""
+                val klass = lesson.kl?.firstOrNull()?.getDisplayName(preferLong = false) ?: ""
                 
                 if (teacher.isNotEmpty() || klass.isNotEmpty()) {
                     Text(
@@ -571,7 +573,7 @@ fun LessonItem(lesson: TimetableEntry) {
             }
 
             Column(horizontalAlignment = Alignment.End) {
-                val room = lesson.ro?.firstOrNull()?.getDisplayName() ?: ""
+                val room = lesson.ro?.firstOrNull()?.getDisplayName(preferLong = false) ?: ""
                 Text(
                     text = room,
                     style = MaterialTheme.typography.labelLarge,

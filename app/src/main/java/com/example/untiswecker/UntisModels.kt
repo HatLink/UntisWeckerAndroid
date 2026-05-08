@@ -117,9 +117,10 @@ data class Entity(
     val foreColor: String? = null,
     val orgid: Long? = null
 ) {
-    fun getDisplayName(): String? {
-        return (longname ?: longName)?.takeIf { it.isNotEmpty() }
-            ?: name?.takeIf { it.isNotEmpty() }
+    fun getDisplayName(preferLong: Boolean = true): String? {
+        val short = name?.takeIf { it.isNotEmpty() }
+        val long = (longname ?: longName)?.takeIf { it.isNotEmpty() }
+        return if (preferLong) (long ?: short) else (short ?: long)
     }
 
     fun getFullTeacherName(): String? {

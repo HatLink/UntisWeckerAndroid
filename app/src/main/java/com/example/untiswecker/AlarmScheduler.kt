@@ -6,6 +6,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.Log
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -22,13 +24,17 @@ class AlarmScheduler(private val context: Context) {
             return
         }
 
-        val nextAlarmTime = findNextAlarmDateTime(offsets, timetable)
-        if (nextAlarmTime == null) {
+        val result = findNextAlarm(offsets, timetable)
+        if (result == null) {
             Log.d("AlarmScheduler", "No future lessons found to schedule an alarm.")
             return
         }
 
-        val intent = Intent(context, AlarmReceiver::class.java)
+        val (nextAlarmTime, lesson) = result
+
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            putExtra("lesson_json", Json.encodeToString(lesson))
+        }
         val pendingIntent = PendingIntent.getBroadcast(
             context,
             0,
@@ -76,11 +82,13 @@ class AlarmScheduler(private val context: Context) {
         Log.d("AlarmScheduler", "Cancelled all alarms")
     }
 
-    private fun findNextAlarmDateTime(offsets: List<Int>, timetable: List<TimetableEntry>): LocalDateTime? {
+    private fun findNextAlarm(offsets: List<Int>, timetable: List<TimetableEntry>): Pair<LocalDateTime, TimetableEntry>? {
         val now = LocalDateTime.now()
         
-        // We look ahead for today and tomorrow
+        // We look ahead for several days
         val daysToPixels = listOf(0, 1, 2, 3, 4, 5, 6, 7)
+        
+        val alarms = mutableListOf<Pair<LocalDateTime, TimetableEntry>>()
         
         for (dayOffset in daysToPixels) {
             val date = now.plusDays(dayOffset.toLong()).toLocalDate()
@@ -94,17 +102,15 @@ class AlarmScheduler(private val context: Context) {
                 val lessonTime = LocalTime.of(firstLesson.startTime / 100, firstLesson.startTime % 100)
                 val lessonDateTime = LocalDateTime.of(date, lessonTime)
                 
-                // For this day, find the earliest alarm that is still in the future
-                val earliestAlarmThisDay = offsets.map { lessonDateTime.minusMinutes(it.toLong()) }
-                    .filter { it.isAfter(now) }
-                    .minByOrNull { it }
-                
-                if (earliestAlarmThisDay != null) {
-                    return earliestAlarmThisDay
+                offsets.forEach { offset ->
+                    val alarmTime = lessonDateTime.minusMinutes(offset.toLong())
+                    if (alarmTime.isAfter(now)) {
+                        alarms.add(alarmTime to firstLesson)
+                    }
                 }
             }
         }
         
-        return null
+        return alarms.minByOrNull { it.first }
     }
 }

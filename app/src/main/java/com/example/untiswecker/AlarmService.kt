@@ -17,6 +17,7 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
+import kotlinx.serialization.json.Json
 
 class AlarmService : Service() {
     private var mediaPlayer: MediaPlayer? = null
@@ -25,6 +26,15 @@ class AlarmService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val lessonJson = intent?.getStringExtra("lesson_json")
+        val lesson = lessonJson?.let {
+            try {
+                Json.decodeFromString<TimetableEntry>(it)
+            } catch (e: Exception) {
+                null
+            }
+        }
+
         val channelId = "alarm_service_channel"
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -40,6 +50,7 @@ class AlarmService : Service() {
 
         val fullScreenIntent = Intent(this, AlarmActivity::class.java).apply {
             this.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            putExtra("lesson_json", lessonJson)
         }
         val fullScreenPendingIntent = PendingIntent.getActivity(
             this,
@@ -48,10 +59,18 @@ class AlarmService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val contentText = if (lesson != null) {
+            val subject = lesson.su?.firstOrNull()?.getDisplayName() ?: lesson.lstext ?: "School"
+            val room = lesson.ro?.firstOrNull()?.getDisplayName(preferLong = false) ?: ""
+            "Next: $subject" + (if (room.isNotEmpty()) " in $room" else "")
+        } else {
+            "Wake up!"
+        }
+
         val notification = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle("Untis Alarm")
-            .setContentText("Wake up!")
+            .setContentText(contentText)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setFullScreenIntent(fullScreenPendingIntent, true)

@@ -11,7 +11,9 @@ import androidx.core.app.NotificationCompat
 
 class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val serviceIntent = Intent(context, AlarmService::class.java)
+        val serviceIntent = Intent(context, AlarmService::class.java).apply {
+            putExtra("lesson_json", intent.getStringExtra("lesson_json"))
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(serviceIntent)
         } else {

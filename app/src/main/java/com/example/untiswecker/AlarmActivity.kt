@@ -27,12 +27,22 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import kotlinx.serialization.json.Json
 import com.example.untiswecker.ui.theme.UntisWeckerTheme
 
 class AlarmActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val lessonJson = intent.getStringExtra("lesson_json")
+        val lesson = lessonJson?.let {
+            try {
+                Json.decodeFromString<TimetableEntry>(it)
+            } catch (e: Exception) {
+                null
+            }
+        }
 
         // Show over lock screen
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
@@ -59,11 +69,34 @@ class AlarmActivity : ComponentActivity() {
                             text = "ALARM!",
                             style = MaterialTheme.typography.headlineLarge
                         )
+
+                        if (lesson != null) {
+                            val subject = lesson.su?.firstOrNull()?.getDisplayName() ?: lesson.lstext ?: "School"
+                            val room = lesson.ro?.firstOrNull()?.getDisplayName(preferLong = false) ?: ""
+                            val time = formatUntisTime(lesson.startTime)
+                            
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = subject,
+                                style = MaterialTheme.typography.titleLarge
+                            )
+                            if (room.isNotEmpty()) {
+                                Text(
+                                    text = "Room: $room",
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                            }
+                            Text(
+                                text = "Starts at $time",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+
                         Spacer(modifier = Modifier.height(32.dp))
                         Row {
                             Button(onClick = {
                                 stopAlarmService()
-                                snoozeAlarm()
+                                snoozeAlarm(lessonJson)
                                 finish()
                             }) {
                                 Text("Snooze (9 min)")
@@ -83,14 +116,22 @@ class AlarmActivity : ComponentActivity() {
         }
     }
 
+    private fun formatUntisTime(time: Int): String {
+        val h = time / 100
+        val m = time % 100
+        return String.format(java.util.Locale.getDefault(), "%02d:%02d", h, m)
+    }
+
     private fun stopAlarmService() {
         val intent = Intent(this, AlarmService::class.java)
         stopService(intent)
     }
 
-    private fun snoozeAlarm() {
+    private fun snoozeAlarm(lessonJson: String?) {
         val alarmManager = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
-        val intent = android.content.Intent(this, AlarmReceiver::class.java)
+        val intent = android.content.Intent(this, AlarmReceiver::class.java).apply {
+            putExtra("lesson_json", lessonJson)
+        }
         val pendingIntent = android.app.PendingIntent.getBroadcast(
             this,
             0,
